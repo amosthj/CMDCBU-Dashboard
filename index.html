@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CMCDBU Safety Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: report header, site picker, KPI strip, site comparison, two-column chart grid, data entry. One column under 760px. */
+:root {
+  --bg: #f6f7f6;
+  --surface: #fcfcfb;
+  --ink: #111614;
+  --ink-2: #4e5552;
+  --muted: #858b88;
+  --grid: #e1e3e0;
+  --axis: #c1c6c3;
+  --line: rgba(17,22,20,0.10);
+  --accent: #1d5c4f;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s7: #4a3aa7;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7; --obs: #a3a8a5;
+  --good: #0ca30c; --good-ink: #006300;
+  --warn: #fab219; --serious: #ec835a; --crit: #d03b3b;
+  --banner-bg: #fff6e0; --banner-ink: #6b4a00;
+  --f-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1110; --surface: #181b1a; --ink: #f4f6f5; --ink-2: #c0c6c3; --muted: #8a908d;
+  --grid: #2a2e2c; --axis: #3a3f3d; --line: rgba(255,255,255,0.10); --accent: #6cc2ad;
+  --s1: #3987e5; --s2: #d95926; --s7: #9085e9; --good-ink: #0ca30c; --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --obs: #6b716e;
+  --banner-bg: #2e2510; --banner-ink: #f2cf7c; color-scheme: dark;
+}}
+:root[data-theme="dark"] {
+  --bg: #0e1110; --surface: #181b1a; --ink: #f4f6f5; --ink-2: #c0c6c3; --muted: #8a908d;
+  --grid: #2a2e2c; --axis: #3a3f3d; --line: rgba(255,255,255,0.10); --accent: #6cc2ad;
+  --s1: #3987e5; --s2: #d95926; --s7: #9085e9; --good-ink: #0ca30c; --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --obs: #6b716e;
+  --banner-bg: #2e2510; --banner-ink: #f2cf7c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-sans); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; gap: 20px; }
+.banner { background: var(--banner-bg); color: var(--banner-ink); border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; border-bottom: 2px solid var(--ink); padding-bottom: 12px; }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 2px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+.meta { font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); text-align: right; }
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.kpi .label { font-size: 12px; color: var(--ink-2); }
+.kpi .value { font-size: 30px; font-weight: 600; line-height: 1.1; }
+.kpi .value small { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
+.kpi .delta { font-size: 12px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.grid { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; }
+.span2 { grid-row: span 2; }
+.group { display: grid; gap: 10px; }
+.group-title { display: flex; align-items: baseline; gap: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.group-title span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-2); }
+.mini { display: grid; gap: 2px; }
+.mini + .mini { border-top: 1px solid var(--grid); padding-top: 10px; }
+.mini-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.mini-head b { font-size: 13px; font-weight: 600; }
+.mini-head span { font-size: 12px; color: var(--ink-2); }
+.sites { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sites .lbl { font-size: 12px; color: var(--ink-2); margin-right: 4px; }
+.chip { font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--axis); background: var(--surface); color: var(--ink); cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip:focus-visible, tr.pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+tr.pick { cursor: pointer; }
+tr.pick:hover td { background: var(--bg); }
+tr.sel td { background: var(--bg); font-weight: 600; }
+tr.total td { border-top: 1px solid var(--axis); color: var(--ink-2); }
+td.num, th.num { text-align: right; font-family: var(--f-mono); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.donut { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+.donut svg { width: 200px; max-width: 100%; flex: 0 0 auto; }
+.donut .dl { flex: 1 1 240px; min-width: 0; }
+.donut table { min-width: 0; font-size: 13px; }
+.donut td { padding: 5px 6px; }
+.donut td.sw { width: 14px; padding-right: 0; }
+.donut td.sw i { display: block; width: 10px; height: 10px; border-radius: 2px; }
+.donut tr.hl td { background: var(--bg); }
+.btn { font: inherit; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.danger { border-color: var(--crit); color: var(--crit); background: transparent; }
+.btn.small { padding: 3px 10px; font-size: 12px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:focus-visible, .form input:focus-visible, .form select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.form { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 16px; align-items: start; }
+.form label { align-content: start; }
+.form label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.form input, .form select { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--axis); border-radius: 6px; padding: 7px 9px; min-width: 0; }
+.form input[aria-invalid="true"] { border-color: var(--crit); }
+.form input[readonly] { background: transparent; border-style: dashed; color: var(--ink-2); }
+.form .hint { font-size: 11px; color: var(--muted); }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.msg { font-size: 13px; }
+.msg.err { color: var(--crit); }
+.msg.ok { color: var(--good-ink); }
+.note { font-size: 13px; color: var(--ink-2); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+.tag { font-family: var(--f-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px; margin-left: 6px; }
+.head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+@media (max-width: 760px) { .head-actions { align-items: flex-start; } }
+dl.defs { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; color: var(--ink-2); }
+dl.defs dt { font-family: var(--f-mono); color: var(--ink); }
+dl.defs dd { margin: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; display: grid; gap: 10px; align-content: start; }
+.panel h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.panel .sub { margin: 0; font-size: 12px; color: var(--ink-2); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font-family: var(--f-mono); font-size: 10px; fill: var(--muted); }
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px; padding: 6px 9px; border-radius: 5px; line-height: 1.4; z-index: 10; white-space: nowrap; }
+.tip b { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 620px; }
+th { text-align: left; font-weight: 500; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--axis); }
+td { padding: 9px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+td.mono { font-family: var(--f-mono); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hit { fill: transparent; cursor: default; }
+footer { font-size: 12px; color: var(--muted); }
+.problems { background: var(--banner-bg); color: var(--banner-ink); border-radius: 6px; padding: 10px 14px; font-size: 13px; }
+.problems summary { cursor: pointer; font-weight: 600; }
+.problems ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 2px; }
+@media (max-width: 960px) { .kpis { grid-template-columns: repeat(2, 1fr); } .kpis .kpi:first-child { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .span2 { grid-row: auto; } .meta { text-align: left; } h1 { font-size: 22px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner" id="banner">Loading figures…</div>
+  <details class="problems" id="problems" hidden><summary id="problemsTitle"></summary><ul id="problemsList"></ul></details>
+
+  <header>
+    <div>
+      <div class="eyebrow">Health, Safety &amp; Environment</div>
+      <h1>CMCDBU Safety Performance</h1>
+    </div>
+    <div class="meta"><span id="viewing">All sites</span><br><span id="period">Reporting period: Oct 2025 – Sep 2026</span><br><span id="asof">Data as of 30 Sep 2026</span></div>
+  </header>
+
+  <div class="sites" role="group" aria-label="Project site"><span class="lbl">Project site</span><span id="siteChips" class="sites"></span></div>
+
+  <section class="kpis" id="kpis" aria-label="Key safety indicators"></section>
+
+  <section class="group" aria-label="Site performance">
+    <div class="group-title">Site performance <span id="rollNote">Rolling 12 months to Sep 2026. Select a row to view that site.</span></div>
+    <section class="panel">
+      <div class="table-wrap"><table id="siteTable" style="min-width:640px">
+        <thead><tr><th>Site</th><th class="num">Workers</th><th class="num">Man-hours</th><th class="num">Reportable<br>accidents</th><th class="num">WIR</th><th class="num">AFR</th><th class="num">ASR</th><th>Overall</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+  </section>
+
+  <section class="group" aria-label="Accidents and incidents">
+    <div class="group-title">Accidents &amp; incidents <span>MOM WSH reporting</span></div>
+    <div class="grid">
+      <section class="panel">
+        <h2>Accidents and near misses by month</h2>
+        <p class="sub">Reportable accidents (MOM) and all recordable incidents against reported near misses. Rising near-miss reports usually signal a healthy reporting culture.</p>
+        <div class="legend"><span><i style="background:var(--s1)"></i>Near misses</span><span><i style="background:var(--s2)"></i>Recordable incidents</span><span><i style="background:var(--s7)"></i>Reportable accidents</span></div>
+        <div id="chartMonthly"></div>
+      </section>
+      <section class="panel span2">
+        <h2>WIR, AFR and ASR, rolling 12 months</h2>
+        <p class="sub">Each rate uses its own scale. Dashed line is the 2026 target.</p>
+        <div class="mini"><div class="mini-head"><b>WIR</b><span>Injuries per 100,000 workers</span></div><div id="chartWir"></div></div>
+        <div class="mini"><div class="mini-head"><b>AFR</b><span>Reportable accidents per 1,000,000 man-hours</span></div><div id="chartAfr"></div></div>
+        <div class="mini"><div class="mini-head"><b>ASR</b><span>Man-days lost per 1,000,000 man-hours</span></div><div id="chartAsr"></div></div>
+        <dl class="defs">
+          <dt>WIR</dt><dd>Workplace Injury Rate = (fatal + non-fatal workplace injuries ÷ average workers employed) × 100,000</dd>
+          <dt>AFR</dt><dd>Accident Frequency Rate = (reportable accidents ÷ man-hours worked) × 1,000,000</dd>
+          <dt>ASR</dt><dd>Accident Severity Rate = (man-days lost ÷ man-hours worked) × 1,000,000</dd>
+        </dl>
+      </section>
+      <section class="panel">
+        <h2>Incidents by type<span class="tag" data-sample hidden>Sample data</span></h2>
+        <p class="sub">All recordable incidents in the period.</p>
+        <div id="chartTypes"></div>
+      </section>
+    </div>
+  </section>
+
+  <footer id="source">Data source: data/safety-data.xlsx</footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+<script src="xlsx.full.min.js"></script>
+<script>
+const sum = a => a.reduce((x,y)=>x+y,0);
+// ---- Placeholder data (the GitHub version reads this from data/*.csv, one row per site per month) ----
+const SITES = [
+  { id:"utb",   name:"UTB",        w:.22 },
+  { id:"rvm",   name:"RVM",        w:.18 },
+  { id:"rvg",   name:"RVG",        w:.16 },
+  { id:"cm1",   name:"CM1",        w:.14 },
+  { id:"fwc",   name:"FWC",        w:.12 },
+  { id:"cbc",   name:"CBC",        w:.10 },
+  { id:"bedok", name:"Bedok Rise", w:.08 }
+];
+let MONTHS = ["Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep"];
+let YEARS  = [2025,2025,2025,2026,2026,2026,2026,2026,2026,2026,2026,2026];
+const TARGETS = { wir: 400, afr: 1.8, asr: 30 };
+let AS_OF = "2026-09-30";
+// Company-wide monthly totals, split across sites below
+const TOTALS = {
+  hours:      [171900,176400,158600,172300,165800,184200,178900,183600,182700,190400,188100,181300],
+  workers:    [905,912,898,915,920,931,928,934,940,946,943,938],
+  nearMiss:   [14,17,12,19,21,18,24,22,27,25,29,31],
+  recordable: [3,2,4,2,3,1,2,2,1,1,2,0],
+  types: [["Slips, trips and falls",7],["Manual handling",5],["Struck by object",3],["Cuts and lacerations",3],["Vehicle or plant",2],["Other",3]]
+};
+// MOM-reportable accidents: month index in the period, site, man-days lost
+const ACCIDENTS = [
+  { m:0, date:"2025-10-14", site:"rvm", days:12 },
+  { m:2, date:"2025-12-09", site:"utb", days:18 },
+  { m:4, date:"2026-02-17", site:"rvm", days:9 },
+  { m:7, date:"2026-05-26", site:"rvg", days:14 }
+];
+// Prior 12 months (Oct 2024 to Sep 2025), needed for the rolling rates
+const PRIOR_ACCIDENTS = [ {m:0,site:"utb",days:8}, {m:3,site:"rvm",days:15}, {m:5,site:"cm1",days:11}, {m:8,site:"rvg",days:20}, {m:11,site:"fwc",days:7} ];
+const PRIOR_HOURS = 172000, PRIOR_WORKERS = 890;
+
+// Seeded split of a company total across sites (largest remainder, so sites always add back up to the total)
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function split(total, seed, jitter=.5){
+  const r = rng(seed), w = SITES.map(st => st.w*(1-jitter/2+jitter*r())), W = w.reduce((a,b)=>a+b,0);
+  const raw = w.map(x => x/W*total), out = raw.map(Math.floor);
+  raw.map((x,i)=>[x-out[i],i]).sort((a,b)=>b[0]-a[0]).slice(0, total-out.reduce((a,b)=>a+b,0)).forEach(([,i])=>out[i]++);
+  return out;
+}
+const BY_SITE = Object.fromEntries(SITES.map(st => [st.id, { hours:[], workers:[], nearMiss:[], recordable:[], reportable:Array(12).fill(0), manDaysLost:Array(12).fill(0), priorReportable:Array(12).fill(0), priorDays:Array(12).fill(0), priorHours:[], priorWorkers:[] }]));
+MONTHS.forEach((_,m)=>{
+  const put = (key, arr) => SITES.forEach((st,i)=>BY_SITE[st.id][key][m] = arr[i]);
+  put("hours", split(TOTALS.hours[m], 10+m, .15)); put("workers", split(TOTALS.workers[m], 30+m, .1));
+  put("nearMiss", split(TOTALS.nearMiss[m], 50+m));
+  const evs = ACCIDENTS.filter(a=>a.m===m), rest = split(TOTALS.recordable[m]-evs.length, 70+m);
+  SITES.forEach((st,i)=>BY_SITE[st.id].recordable[m] = rest[i] + evs.filter(a=>a.site===st.id).length);
+  put("priorHours", split(PRIOR_HOURS, 130+m, .15)); put("priorWorkers", split(PRIOR_WORKERS, 150+m, .1));
+});
+ACCIDENTS.forEach(a=>{ BY_SITE[a.site].reportable[a.m]++; BY_SITE[a.site].manDaysLost[a.m] += a.days; });
+PRIOR_ACCIDENTS.forEach(a=>{ BY_SITE[a.site].priorReportable[a.m]++; BY_SITE[a.site].priorDays[a.m] += a.days; });
+const TYPE_SPLIT = TOTALS.types.map(([n,v],k)=>split(v, 170+k, .9));
+
+// Build the dataset for one site, or all sites summed
+// ---- Reporting period ----
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const ym = k => { const [y,m] = k.split("-").map(Number); return {y,m}; };
+const addMonths = (k,n) => { const {y,m} = ym(k), t = y*12+(m-1)+n; return `${Math.floor(t/12)}-${String(t%12+1).padStart(2,"0")}`; };
+const keyLabel = k => { const {y,m} = ym(k); return `${MON[m-1]} ${y}`; };
+const monthEnd = k => { const {y,m} = ym(k); return new Date(Date.UTC(y,m,0)).toISOString().slice(0,10); };
+const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; };
+const todayISO = () => { const d = new Date(); return `${todayKey()}-${String(d.getDate()).padStart(2,"0")}`; };
+const SAMPLE_END = "2026-09";
+let KEYS = [], PRIOR_KEYS = [], PERIOD_END = SAMPLE_END, LIVE_MODE = false;
+function setPeriod(end){
+  PERIOD_END = end; KEYS = Array.from({length:12}, (_,i)=>addMonths(end, i-11)); PRIOR_KEYS = KEYS.map(k=>addMonths(k,-12));
+  MONTHS = KEYS.map(k=>MON[ym(k).m-1]); YEARS = KEYS.map(k=>ym(k).y);
+}
+setPeriod(SAMPLE_END);
+const monthKey = m => KEYS[m];
+const monthLabel = m => keyLabel(KEYS[m]);
+const $ = id => document.getElementById(id);
+const DATA_FILE = "data/safety-data.xlsx";
+
+// ---- Project sites: built-in list, overridden by the "Site start dates" sheet ----
+let FILE_SITES = [], ALL_SITES = [], SITE_LIST = [];
+const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40);
+function computeSites(){
+  const map = new Map(SITES.map(st=>[st.id, {id:st.id, name:st.name, start:"", end:""}]));
+  FILE_SITES.forEach(d => map.set(d.id, {...(map.get(d.id)||{}), ...d}));
+  ALL_SITES = [...map.values()];
+  SITE_LIST = ALL_SITES.filter(st => (!st.start || st.start <= PERIOD_END) && (!st.end || st.end >= KEYS[0]));
+  if (LIVE_MODE) { const used = new Set(ENTRIES.map(e=>e.site)); SITE_LIST = SITE_LIST.filter(st => used.has(st.id) || st.start); }
+}
+
+// ---- Figures from the Excel file. With no figures filled in, the page shows sample data ----
+const FIELDS = ["hours","workers","nearMiss","recordable","reportable","manDaysLost"];
+const zeros = () => Array(12).fill(0);
+const blankSite = () => ({ hours:zeros(), workers:zeros(), nearMiss:zeros(), recordable:zeros(), reportable:zeros(), manDaysLost:zeros(), priorReportable:zeros(), priorDays:zeros(), priorHours:zeros(), priorWorkers:zeros() });
+let ENTRIES = [], LIVE = BY_SITE, LIVE_ACC = ACCIDENTS;
+function rebuild(){
+  LIVE_MODE = ENTRIES.length > 0;
+  if (LIVE_MODE) { const latest = ENTRIES.map(e=>e.month).sort().at(-1); setPeriod(latest); AS_OF = monthEnd(latest); }
+  else { setPeriod(SAMPLE_END); AS_OF = "2026-09-30"; }
+  computeSites();
+  LIVE = {};
+  ALL_SITES.forEach(st => LIVE[st.id] = (!LIVE_MODE && BY_SITE[st.id]) ? BY_SITE[st.id] : blankSite());
+  if (!LIVE_MODE) { LIVE_ACC = ACCIDENTS; return; }
+  LIVE_ACC = [];
+  ENTRIES.forEach(e=>{
+    const L = LIVE[e.site]; if (!L) return;
+    const m = KEYS.indexOf(e.month), p = PRIOR_KEYS.indexOf(e.month);
+    if (m >= 0) FIELDS.forEach(f => L[f][m] = e[f]);
+    else if (p >= 0) { L.priorReportable[p] = e.reportable; L.priorDays[p] = e.manDaysLost; L.priorHours[p] = e.hours; L.priorWorkers[p] = e.workers; }
+    if (e.reportable > 0) LIVE_ACC.push({ site:e.site, date: e.lastAccidentDate || monthEnd(e.month) });
+  });
+  LIVE_ACC.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// Excel cells can hold real dates (serial numbers) or text such as 2024-11, Nov-24, Nov 2024, 01/11/2024
+const MON_IDX = n => ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(String(n).slice(0,3).toLowerCase())+1;
+const pad = n => String(n).padStart(2,"0");
+function toDate(v){   // -> {y,m,d} or null
+  if (v === "" || v == null) return null;
+  if (typeof v === "number" && v > 20000 && v < 80000) { const c = XLSX.SSF.parse_date_code(v); return { y:c.y, m:c.m, d:c.d }; }
+  const s = String(v).trim(); let r;
+  if ((r = s.match(/^(\d{4})[-\/.](\d{1,2})(?:[-\/.](\d{1,2}))?/))) return { y:+r[1], m:+r[2], d:+(r[3]||1) };
+  if ((r = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/))) return { y: r[3].length===2 ? 2000 + +r[3] : +r[3], m:+r[2], d:+r[1] };   // Singapore style: day first
+  if ((r = s.match(/^(\d{1,2})[-\/.](\d{4})$/))) return { y:+r[2], m:+r[1], d:1 };
+  if ((r = s.match(/^(\d{1,2})?[\s-]*([A-Za-z]{3,9})[\s,-]*(\d{2,4})$/)) && MON_IDX(r[2])) return { y: r[3].length===2 ? 2000 + +r[3] : +r[3], m:MON_IDX(r[2]), d:+(r[1]||1) };
+  return null;
+}
+const okDate = t => t && t.y >= 2000 && t.y < 2100 && t.m >= 1 && t.m <= 12 && t.d >= 1 && t.d <= 31;
+const asMonth = v => { const t = toDate(v); return okDate(t) ? `${t.y}-${pad(t.m)}` : null; };
+const asDay = v => { const t = toDate(v); return okDate(t) ? `${t.y}-${pad(t.m)}-${pad(t.d)}` : null; };
+
+function readSheet(wb, name){
+  const ws = wb.Sheets[name] || wb.Sheets[wb.SheetNames.find(n => n.toLowerCase() === name.toLowerCase())];
+  return ws ? XLSX.utils.sheet_to_json(ws, { header:1, raw:true, defval:"", blankrows:false }) : null;
+}
+function colFinder(header){
+  const h = header.map(x => String(x).trim().toLowerCase());
+  return test => h.findIndex(test);
+}
+function parseWorkbook(wb){
+  const problems = [];
+  const siteRows = readSheet(wb, "Site start dates");
+  const sites = [];
+  if (siteRows && siteRows.length) {
+    const col = colFinder(siteRows[0]);
+    const cS = col(x=>x.startsWith("site")), cA = col(x=>x.includes("start")), cB = col(x=>x.includes("end"));
+    siteRows.slice(1).forEach((r,i)=>{
+      const name = String(r[cS] ?? "").trim(); if (!name) return;
+      const start = r[cA] === "" ? "" : asMonth(r[cA]), end = cB < 0 || r[cB] === "" ? "" : asMonth(r[cB]);
+      if (start === null) problems.push(`Site start dates, row ${i+2} (${name}): start month "${r[cA]}" isn't a month. Use YYYY-MM, e.g. 2024-11.`);
+      if (end === null) problems.push(`Site start dates, row ${i+2} (${name}): end month "${r[cB]}" isn't a month.`);
+      const known = SITES.find(st => st.name.toLowerCase() === name.toLowerCase());
+      sites.push({ id: known ? known.id : slug(name), name, start: start || "", end: end || "" });
+    });
+  }
+  const rows = readSheet(wb, "Monthly data");
+  if (!rows) { problems.push(`The data file has no sheet called "Monthly data".`); return { sites, entries: [], problems }; }
+  const col = colFinder(rows[0]);
+  const C = {
+    site: col(x=>x.startsWith("site")), month: col(x=>x.startsWith("month")),
+    hours: col(x=>x.startsWith("man-hours") || x.startsWith("man hours")), workers: col(x=>x.startsWith("average workers")),
+    days: col(x=>x.startsWith("working days")), hpd: col(x=>x.startsWith("average hours")),
+    nearMiss: col(x=>x.startsWith("near miss")), recordable: col(x=>x.startsWith("recordable")),
+    reportable: col(x=>x.includes("reportable")), manDaysLost: col(x=>x.startsWith("man-days") || x.startsWith("man days")),
+    date: col(x=>x.includes("accident date"))
+  };
+  const missing = ["site","month","workers","nearMiss","recordable","reportable","manDaysLost"].filter(k => C[k] < 0);
+  if (missing.length) { problems.push(`The "Monthly data" sheet is missing these columns: ${missing.join(", ")}. Keep the column headings from the template.`); return { sites, entries: [], problems }; }
+  const seen = new Map();
+  rows.slice(1).forEach((r,i)=>{
+    const rowNo = i+2, get = k => C[k] < 0 ? "" : r[C[k]];
+    const nums = ["hours","workers","days","hpd","nearMiss","recordable","reportable","manDaysLost"];
+    if (nums.every(k => String(get(k)).trim() === "")) return;   // row not filled in yet
+    const name = String(get("site")).trim(), month = asMonth(get("month"));
+    const where = `Monthly data, row ${rowNo}${name ? " ("+name+(month ? " "+keyLabel(month) : "")+")" : ""}`;
+    if (!name) return problems.push(`${where}: the site is blank.`);
+    if (!month) return problems.push(`${where}: month "${get("month")}" isn't a month. Use YYYY-MM, e.g. 2024-11.`);
+    const num = (k, label, opts={}) => {
+      const raw = String(get(k)).trim(); if (raw === "") return opts.blank;
+      const n = Number(raw.replace(/,/g,""));
+      if (!Number.isFinite(n) || n < 0 || (!opts.decimal && !Number.isInteger(n))) { problems.push(`${where}: ${label} "${raw}" should be ${opts.decimal ? "a number" : "a whole number"} of 0 or more.`); return opts.blank ?? 0; }
+      return n;
+    };
+    const e = { site: "", month, workers: num("workers","average workers",{blank:0}), nearMiss: num("nearMiss","near misses",{blank:0}),
+      recordable: num("recordable","recordable incidents",{blank:0}), reportable: num("reportable","reportable accidents",{blank:0}), manDaysLost: num("manDaysLost","man-days lost",{blank:0}) };
+    const days = num("days","working days"), hpd = num("hpd","hours per day",{decimal:true}) ?? DEFAULT_HPD, hrs = num("hours","man-hours",{decimal:true});
+    if (days !== undefined && days > 31) problems.push(`${where}: ${days} working days is more than a month has.`);
+    if (hrs !== undefined) e.hours = Math.round(hrs);
+    else if (days !== undefined) e.hours = Math.round(e.workers * days * hpd);
+    else { e.hours = 0; problems.push(`${where}: no man-hours and no working days, so man-hours count as 0. Fill in working days.`); }
+    const d = get("date");
+    if (String(d).trim() !== "") {
+      const iso = asDay(d);
+      if (!iso) problems.push(`${where}: accident date "${d}" isn't a date. Use YYYY-MM-DD.`);
+      else if (!iso.startsWith(month)) problems.push(`${where}: accident date ${iso} isn't in ${keyLabel(month)}.`);
+      else e.lastAccidentDate = iso;
+    }
+    if (e.reportable > 0 && e.workers === 0) problems.push(`${where}: reportable accident with 0 average workers, so WIR can't be worked out for it.`);
+    const known = SITES.find(st => st.name.toLowerCase() === name.toLowerCase()) || sites.find(st => st.name.toLowerCase() === name.toLowerCase());
+    e.site = known ? known.id : slug(name);
+    if (!known && !sites.some(st => st.id === e.site)) sites.push({ id: e.site, name, start: "", end: "" });
+    const key = e.site + "_" + month;
+    if (seen.has(key)) problems.push(`${where}: ${name} ${keyLabel(month)} also appears in row ${seen.get(key)}. The later row is used.`);
+    seen.set(key, rowNo);
+    ENTRIES_TMP.set(key, e);
+  });
+  return { sites, entries: [...ENTRIES_TMP.values()], problems };
+}
+let ENTRIES_TMP = new Map();
+const DEFAULT_HPD = 9;
+
+function showProblems(list){
+  const box = $("problems");
+  if (!list.length) { box.hidden = true; return; }
+  box.hidden = false;
+  $("problemsTitle").textContent = `${list.length} row${list.length>1?"s":""} in the data file need${list.length>1?"":"s"} checking`;
+  $("problemsList").innerHTML = ""; list.forEach(t => { const li = document.createElement("li"); li.textContent = t; $("problemsList").appendChild(li); });
+}
+async function loadData(){
+  try {
+    if (!window.XLSX) throw new Error("reader");
+    const res = await fetch(DATA_FILE + "?v=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("missing");
+    const wb = XLSX.read(await res.arrayBuffer(), { type: "array" });
+    ENTRIES_TMP = new Map();
+    const { sites, entries, problems } = parseWorkbook(wb);
+    FILE_SITES = sites; ENTRIES = entries;
+    showProblems(problems);
+    const n = new Set(entries.map(e=>e.site)).size;
+    $("banner").textContent = entries.length
+      ? `Figures from ${DATA_FILE}: ${entries.length} site-month${entries.length>1?"s":""} across ${n} site${n>1?"s":""}. "Incidents by type" is still sample data.`
+      : `No figures in ${DATA_FILE} yet, so every number on this page is sample data.`;
+    $("banner").hidden = false;
+    const mod = res.headers.get("last-modified");
+    $("source").textContent = `Data source: ${DATA_FILE}` + (mod ? `, updated ${new Date(mod).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}` : "") + ". Man-hours left blank are worked out as workers × working days × hours per day (9 if blank).";
+  } catch (err) {
+    $("banner").textContent = err.message === "missing" ? `Couldn't find ${DATA_FILE}, so this page shows sample data.` : "Couldn't read the data file, so this page shows sample data. Check your connection and reload.";
+  }
+  rebuild();
+  let start = "all"; try { const v = localStorage.getItem("site"); if (v && (v==="all" || SITE_LIST.some(st=>st.id===v))) start = v; } catch(e) {}
+  DATA = buildView(start); RATES = rates(DATA); renderAll();
+}
+function buildView(siteId){
+  if (siteId !== "all" && !SITE_LIST.some(st=>st.id===siteId)) siteId = "all";
+  const ids = SITE_LIST.filter(st => siteId==="all" || st.id===siteId).map(st=>st.id);
+  const idx = SITES.map((st,i)=>i).filter(i => ids.includes(SITES[i].id));   // sample-only sections
+  const add = key => MONTHS.map((_,m)=>sum(ids.map(id=>LIVE[id][key][m])));
+  const acc = LIVE_ACC.filter(a=>ids.includes(a.site));
+  return {
+    siteId, months: MONTHS, years: YEARS, targets: TARGETS, asOf: AS_OF,
+    hours: add("hours"), workers: add("workers"), nearMiss: add("nearMiss"), recordable: add("recordable"),
+    reportable: add("reportable"), manDaysLost: add("manDaysLost"),
+    prior: { reportable: add("priorReportable"), manDaysLost: add("priorDays"), hours: add("priorHours"), workers: add("priorWorkers") },
+    lastAccident: acc.length ? acc.at(-1).date : null,
+    types: TOTALS.types.map(([n],k)=>[n, sum(idx.map(i=>TYPE_SPLIT[k][i]))])
+  };
+}
+// Rolling 12-month MOM rates for each month of the period
+function rates(D){
+  return D.months.map((_,i)=>{
+    const roll = key => D.prior[key].concat(D[key]).slice(i+1, i+13);
+    const w = roll("workers"), acc = sum(roll("reportable")), days = sum(roll("manDaysLost")), hrs = sum(roll("hours"));
+    const wk = sum(w) / Math.max(1, w.filter(x=>x>0).length);   // average over months the site was active
+    return { wir: wk ? acc/wk*1e5 : 0, afr: hrs ? acc/hrs*1e6 : 0, asr: hrs ? days/hrs*1e6 : 0 };
+  });
+}
+const siteName = id => id==="all" ? "All sites" : (ALL_SITES.find(st=>st.id===id)?.name || id);
+let DATA, RATES;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = n => n.toLocaleString("en-GB");
+const tip = document.getElementById("tip");
+function showTip(e, html){ tip.innerHTML = html; tip.hidden = false; const r = tip.getBoundingClientRect();
+  let x = e.clientX + 12, y = e.clientY - r.height - 10; if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 12; if (y < 8) y = e.clientY + 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; }
+function hideTip(){ tip.hidden = true; }
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent){ const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+function svgBox(id, w, h){ const host = document.getElementById(id); host.innerHTML = ""; return el("svg", {viewBox:`0 0 ${w} ${h}`, role:"img"}, host); }
+function niceMax(v){ if (!(v>0)) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1,2,2.5,4,5,10]) if (m*p >= v) return m*p; }
+// Bar path with 4px rounded top, square at baseline
+function barPath(x, y, w, h, r=4){ r = Math.min(r, h, w/2); if (h <= 0) return ""; return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`; }
+
+function renderKpis(){
+  const nm = sum(DATA.nearMiss);
+  const now = RATES.at(-1), prev = RATES.at(-4), T = DATA.targets;
+  const fmtD = s => new Date(s+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  const days = DATA.lastAccident ? Math.round((new Date(DATA.asOf) - new Date(DATA.lastAccident))/864e5) : null;
+  const state = (ok, warn) => ok ? ["On target","--good"] : warn ? ["Watch","--warn"] : ["Off target","--crit"];
+  const trend = (k, d) => `${now[k]===prev[k]?"No change from":now[k]<prev[k]?"Down from":"Up from"} ${prev[k].toFixed(d)} in ${monthLabel(8)} · target ${T[k]}`;
+  const k = [
+    days===null ? ["Days since last reportable accident", "–", "", LIVE_MODE ? "No reportable accidents recorded" : "None in the last 12 months", state(true)]
+                 : ["Days since last reportable accident", days, "days", `Last accident: ${fmtD(DATA.lastAccident)}`, state(days>=90, days>=30)],
+    ["WIR (rolling 12 months)", now.wir.toFixed(0), "", trend("wir",0), state(now.wir<=T.wir, now.wir<=T.wir*1.25)],
+    ["AFR (rolling 12 months)", now.afr.toFixed(2), "", trend("afr",2), state(now.afr<=T.afr, now.afr<=T.afr*1.25)],
+    ["ASR (rolling 12 months)", now.asr.toFixed(1), "", trend("asr",1), state(now.asr<=T.asr, now.asr<=T.asr*1.25)],
+    ["Near misses reported", nm, "", `${DATA.nearMiss.at(-1)} in ${monthLabel(11)}`, state(true)]
+  ];
+  document.getElementById("kpis").innerHTML = k.map(([l,v,u,d,[s,c]]) =>
+    `<div class="kpi"><div class="label">${l}</div><div class="value">${v}<small>${u}</small></div>
+     <div class="delta"><span class="pill"><i style="background:var(${c})"></i>${s}</span></div><div class="delta">${d}</div></div>`).join("");
+}
+
+function axisY(svg, m, W, H, max, ticks, fmtT = v=>v){
+  for (let i=0;i<=ticks;i++){ const v = max*i/ticks, y = H-m.b-(H-m.t-m.b)*i/ticks;
+    el("line",{x1:m.l,x2:W-m.r,y1:y,y2:y,stroke:css(i?"--grid":"--axis"),"stroke-width":1},svg);
+    const t = el("text",{x:m.l-6,y:y+3,"text-anchor":"end"},svg); t.textContent = fmtT(v); }
+}
+function axisX(svg, m, W, H, n, step, labels){
+  labels.forEach((lab,i)=>{ if (n>8 && i%2 && W<500) return; const t = el("text",{x:m.l+step*i+step/2,y:H-m.b+14,"text-anchor":"middle"},svg); t.textContent = lab; });
+}
+
+function renderMonthly(){
+  const W=620,H=280,m={t:10,r:8,b:24,l:30}, svg = svgBox("chartMonthly",W,H);
+  const n = DATA.months.length, max = niceMax(Math.max(4,...DATA.nearMiss)), step=(W-m.l-m.r)/n, pw=H-m.t-m.b;
+  axisY(svg,m,W,H,max,4); axisX(svg,m,W,H,n,step,DATA.months);
+  const bw = Math.min(11,(step-10)/3);
+  DATA.months.forEach((mo,i)=>{
+    const cx = m.l+step*i+step/2;
+    [[DATA.nearMiss[i],"--s1",cx-1.5*bw-2],[DATA.recordable[i],"--s2",cx-bw/2],[DATA.reportable[i],"--s7",cx+bw/2+2]].forEach(([v,c,x])=>{
+      const h = v/max*pw; el("path",{d:barPath(x,H-m.b-h,bw,h),fill:css(c)},svg); });
+    const hit = el("rect",{x:m.l+step*i,y:m.t,width:step,height:pw,class:"hit"},svg);
+    hit.addEventListener("pointermove",e=>showTip(e,`<b>${mo} ${DATA.years[i]}</b><br>Near misses: ${DATA.nearMiss[i]}<br>Recordable incidents: ${DATA.recordable[i]}<br>Reportable accidents: ${DATA.reportable[i]}<br>Man-days lost: ${DATA.manDaysLost[i]}`));
+    hit.addEventListener("pointerleave",hideTip);
+  });
+}
+
+function renderRate(id, key, digits, label){
+  const vals = RATES.map(r=>r[key]), target = DATA.targets[key];
+  const W=420,H=150,m={t:14,r:44,b:22,l:36}, svg = svgBox(id,W,H);
+  const n = vals.length, max = niceMax(Math.max(...vals, target)*1.15), step=(W-m.l-m.r)/n, pw=H-m.t-m.b;
+  const tf = v => digits ? v.toFixed(v%1?digits:0) : v.toFixed(0);
+  axisY(svg,m,W,H,max,2,tf); axisX(svg,m,W,H,n,step,DATA.months.map((x,i)=>i%2?"":x));
+  const X = i=>m.l+step*i+step/2, Y = v=>H-m.b-v/max*pw;
+  const ty = Y(target);
+  el("line",{x1:m.l,x2:W-m.r,y1:ty,y2:ty,stroke:css("--ink-2"),"stroke-dasharray":"4 4","stroke-width":1},svg);
+  const tt = el("text",{x:m.l+4,y:ty-4},svg); tt.textContent = "Target " + target;
+  const pts = vals.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
+  el("polygon",{points:`${X(0)},${H-m.b} ${pts} ${X(n-1)},${H-m.b}`,fill:css("--s1"),opacity:.12},svg);
+  el("polyline",{points:pts,fill:"none",stroke:css("--s1"),"stroke-width":2,"stroke-linejoin":"round"},svg);
+  el("circle",{cx:X(n-1),cy:Y(vals[n-1]),r:4.5,fill:css("--s1"),stroke:css("--surface"),"stroke-width":2},svg);
+  const lab = el("text",{x:X(n-1)+8,y:Y(vals[n-1])+4,"text-anchor":"start",style:`fill:${css("--ink")};font-weight:500`},svg); lab.textContent = vals[n-1].toFixed(digits);
+  const cross = el("line",{y1:m.t,y2:H-m.b,stroke:css("--axis"),visibility:"hidden"},svg);
+  const dot = el("circle",{r:4,fill:css("--s1"),stroke:css("--surface"),"stroke-width":2,visibility:"hidden"},svg);
+  const hit = el("rect",{x:m.l,y:m.t,width:W-m.l-m.r,height:pw,class:"hit"},svg);
+  hit.addEventListener("pointermove",e=>{ const r = svg.getBoundingClientRect(), sx = (e.clientX-r.left)/r.width*W;
+    const i = Math.max(0,Math.min(n-1,Math.round((sx-m.l-step/2)/step)));
+    cross.setAttribute("x1",X(i)); cross.setAttribute("x2",X(i)); cross.setAttribute("visibility","visible");
+    dot.setAttribute("cx",X(i)); dot.setAttribute("cy",Y(vals[i])); dot.setAttribute("visibility","visible");
+    showTip(e,`<b>${DATA.months[i]} ${DATA.years[i]}</b><br>${label}: ${vals[i].toFixed(digits)}<br>Target: ${target}`); });
+  hit.addEventListener("pointerleave",()=>{ hideTip(); cross.setAttribute("visibility","hidden"); dot.setAttribute("visibility","hidden"); });
+}
+
+
+function renderTypes(){
+  const rows = DATA.types, W=620, rh=30, m={t:4,r:36,b:4,l:160}, H=m.t+m.b+rh*rows.length, svg=svgBox("chartTypes",W,H);
+  const max = Math.max(1,...rows.map(r=>r[1])), total = sum(rows.map(r=>r[1]));
+  rows.forEach(([name,v],i)=>{
+    const y = m.t+i*rh, w = v/max*(W-m.l-m.r);
+    const t = el("text",{x:m.l-10,y:y+rh/2+4,"text-anchor":"end",style:`fill:${css("--ink-2")};font-family:var(--f-sans);font-size:12px`},svg); t.textContent = name;
+    el("path",{d:`M${m.l},${y+7}H${m.l+w-4}Q${m.l+w},${y+7} ${m.l+w},${y+11}V${y+rh-11}Q${m.l+w},${y+rh-7} ${m.l+w-4},${y+rh-7}H${m.l}Z`,fill:css("--s2")},svg);
+    const vl = el("text",{x:m.l+w+6,y:y+rh/2+4,style:`fill:${css("--ink")}`},svg); vl.textContent = v;
+    const hit = el("rect",{x:0,y,width:W,height:rh,class:"hit"},svg);
+    hit.addEventListener("pointermove",e=>showTip(e,`<b>${name}</b><br>${v} incidents (${Math.round(v/total*100)}% of total)`));
+    hit.addEventListener("pointerleave",hideTip);
+  });
+  el("line",{x1:m.l,x2:m.l,y1:m.t,y2:H-m.b,stroke:css("--axis")},svg);
+}
+
+
+
+function renderSites(){
+  const rowFor = id => {
+    const D = buildView(id), R = rates(D).at(-1), T = TARGETS;
+    const wk = D.workers.filter(x=>x>0);
+    const lvl = (v,t) => v<=t ? 0 : v<=t*1.25 ? 1 : 2;
+    const worst = Math.max(lvl(R.wir,T.wir), lvl(R.afr,T.afr), lvl(R.asr,T.asr));
+    const [lbl,c] = sum(D.hours)===0 ? ["No data","--muted"] : [["On target","--good"],["Watch","--warn"],["Off target","--crit"]][worst];
+    const st = ALL_SITES.find(x=>x.id===id), since = st?.start ? `<br><span style="font-size:11px;color:var(--muted)">Since ${keyLabel(st.start)}</span>` : "";
+    return `<tr class="${id==="all"?"total":"pick"}${id===DATA.siteId?" sel":""}" data-site="${id}" ${id==="all"?"":'tabindex="0"'}>
+      <td>${siteName(id)}${since}</td><td class="num">${fmt(Math.round(sum(wk)/Math.max(1,wk.length)))}</td><td class="num">${fmt(sum(D.hours))}</td>
+      <td class="num">${sum(D.reportable)}</td><td class="num">${R.wir.toFixed(0)}</td><td class="num">${R.afr.toFixed(2)}</td><td class="num">${R.asr.toFixed(1)}</td>
+      <td><span class="pill"><i style="background:var(${c})"></i>${lbl}</span></td></tr>`;
+  };
+  document.querySelector("#siteTable tbody").innerHTML = SITE_LIST.map(st=>rowFor(st.id)).join("") + rowFor("all");
+  $("rollNote").textContent = `Rolling 12 months to ${monthLabel(11)}. Select a row to view that site.`;
+  $("period").textContent = `Reporting period: ${monthLabel(0)} – ${monthLabel(11)}`;
+  $("asof").textContent = `Data as of ${new Date(AS_OF+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`;
+  document.querySelectorAll("[data-sample]").forEach(t => t.hidden = !LIVE_MODE);
+}
+function renderChips(){
+  document.getElementById("siteChips").innerHTML = ["all", ...SITE_LIST.map(st=>st.id)].map(id =>
+    `<button type="button" class="chip" id="chip-${id}" data-site="${id}" aria-pressed="${id===DATA.siteId}">${siteName(id)}</button>`).join("");
+  document.getElementById("viewing").textContent = DATA.siteId==="all" ? "All sites" : `Project site: ${siteName(DATA.siteId)}`;
+}
+function selectSite(id){
+  DATA = buildView(id); RATES = rates(DATA);
+  try { localStorage.setItem("site", id); } catch(e) {}
+  renderAll();
+}
+document.addEventListener("click", e => { const t = e.target.closest("[data-site]"); if (t && !t.classList.contains("total")) selectSite(t.dataset.site); });
+document.addEventListener("keydown", e => { const t = e.target.closest("tr.pick"); if (t && (e.key==="Enter"||e.key===" ")) { e.preventDefault(); selectSite(t.dataset.site); } });
+
+function renderAll(){ renderChips(); renderSites(); renderKpis(); renderMonthly(); renderRate("chartWir","wir",0,"WIR"); renderRate("chartAfr","afr",2,"AFR"); renderRate("chartAsr","asr",1,"ASR"); renderTypes(); }
+rebuild();
+DATA = buildView("all"); RATES = rates(DATA); renderAll();
+loadData();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll);
+new MutationObserver(renderAll).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+</script>
+</body>
+</html>
