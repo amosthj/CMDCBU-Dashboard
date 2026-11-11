@@ -30,7 +30,8 @@ Nothing is typed into the web page. To change any number, change the Excel file 
    - MONTH: any date in that month, e.g. 1/11/2026.
    - MANPOWER: average workers on site.
    - HOURS WORKED: total man-hours for the month.
-   - The grey accident columns are optional. Blank counts as 0.
+   - NO. OF ACCIDENTS and MAN-DAYS LOST: put 0 if none. ACCIDENT DATE only if there was one.
+   - The grey columns (near misses, recordable incidents) are optional. Blank counts as 0.
 4. Save the file. Keep the name exactly `safety-data.xlsx` and keep the column headings as they are.
 5. On GitHub, open the `data` folder, then click **Add file → Upload files**. Drop in the file and click **Commit changes**. It replaces the old one.
 6. Within a couple of minutes, reload the dashboard and the new figures appear.
