@@ -375,7 +375,7 @@ function parseWorkbook(wb){
       if (!Number.isFinite(n) || n < 0 || (!opts.decimal && !Number.isInteger(n))) { problems.push(`${where}: ${label} "${raw}" should be ${opts.decimal ? "a number" : "a whole number"} of 0 or more.`); return opts.blank ?? 0; }
       return n;
     };
-    const e = { site: "", month, workers: num("workers","manpower",{blank:0}), nearMiss: num("nearMiss","near misses",{blank:0}),
+    const e = { site: "", month, workers: num("workers","manpower",{blank:0,decimal:true}), nearMiss: num("nearMiss","near misses",{blank:0}),
       recordable: num("recordable","recordable incidents",{blank:0}), reportable: num("reportable","reportable accidents",{blank:0}), manDaysLost: num("manDaysLost","man-days lost",{blank:0}) };
     const days = num("days","working days"), hpd = num("hpd","hours per day",{decimal:true}) ?? DEFAULT_HPD, hrs = num("hours","man-hours",{decimal:true});
     if (days !== undefined && days > 31) problems.push(`${where}: ${days} working days is more than a month has.`);
