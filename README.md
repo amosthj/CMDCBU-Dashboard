@@ -24,10 +24,13 @@ Nothing is typed into the web page. To change any number, change the Excel file 
 ## Monthly update
 
 1. Download the current file: open `data/safety-data.xlsx` on GitHub and click the download button.
-2. On the **Monthly data** sheet, fill in one row per site for the new month.
-   - Man-hours can be left blank. It's then worked out as average workers × working days × hours per day.
-   - Hours per day can be left blank, and 9 is used.
-3. If a project starts or ends, add or update its row on the **Site start dates** sheet.
+2. **Projects** sheet: one row per project with its START DATE. Fill in END DATE only when the project is completed.
+3. **Monthly data** sheet: one row per project per month.
+   - PROJECT: pick from the list.
+   - MONTH: any date in that month, e.g. 1/11/2026.
+   - MANPOWER: average workers on site.
+   - HOURS WORKED: total man-hours for the month.
+   - The grey accident columns are optional. Blank counts as 0.
 4. Save the file. Keep the name exactly `safety-data.xlsx` and keep the column headings as they are.
 5. On GitHub, open the `data` folder, then click **Add file → Upload files**. Drop in the file and click **Commit changes**. It replaces the old one.
 6. Within a couple of minutes, reload the dashboard and the new figures appear.

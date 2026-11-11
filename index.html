@@ -333,16 +333,16 @@ function colFinder(header){
 }
 function parseWorkbook(wb){
   const problems = [];
-  const siteRows = readSheet(wb, "Site start dates");
+  const siteRows = readSheet(wb, "Projects") || readSheet(wb, "Site start dates");
   const sites = [];
   if (siteRows && siteRows.length) {
     const col = colFinder(siteRows[0]);
-    const cS = col(x=>x.startsWith("site")), cA = col(x=>x.includes("start")), cB = col(x=>x.includes("end"));
+    const cS = col(x=>x.startsWith("site") || x.startsWith("project")), cA = col(x=>x.includes("start")), cB = col(x=>x.includes("end"));
     siteRows.slice(1).forEach((r,i)=>{
       const name = String(r[cS] ?? "").trim(); if (!name) return;
       const start = r[cA] === "" ? "" : asMonth(r[cA]), end = cB < 0 || r[cB] === "" ? "" : asMonth(r[cB]);
-      if (start === null) problems.push(`Site start dates, row ${i+2} (${name}): start month "${r[cA]}" isn't a month. Use YYYY-MM, e.g. 2024-11.`);
-      if (end === null) problems.push(`Site start dates, row ${i+2} (${name}): end month "${r[cB]}" isn't a month.`);
+      if (start === null) problems.push(`Projects, row ${i+2} (${name}): start date "${r[cA]}" isn't a date.`);
+      if (end === null) problems.push(`Projects, row ${i+2} (${name}): end date "${r[cB]}" isn't a date.`);
       const known = SITES.find(st => st.name.toLowerCase() === name.toLowerCase());
       sites.push({ id: known ? known.id : slug(name), name, start: start || "", end: end || "" });
     });
@@ -351,14 +351,14 @@ function parseWorkbook(wb){
   if (!rows) { problems.push(`The data file has no sheet called "Monthly data".`); return { sites, entries: [], problems }; }
   const col = colFinder(rows[0]);
   const C = {
-    site: col(x=>x.startsWith("site")), month: col(x=>x.startsWith("month")),
-    hours: col(x=>x.startsWith("man-hours") || x.startsWith("man hours")), workers: col(x=>x.startsWith("average workers")),
+    site: col(x=>x.startsWith("site") || x.startsWith("project")), month: col(x=>x.startsWith("month")),
+    hours: col(x=>x.startsWith("man-hours") || x.startsWith("man hours") || x.startsWith("hours worked")), workers: col(x=>x.startsWith("average workers") || x.startsWith("manpower")),
     days: col(x=>x.startsWith("working days")), hpd: col(x=>x.startsWith("average hours")),
     nearMiss: col(x=>x.startsWith("near miss")), recordable: col(x=>x.startsWith("recordable")),
     reportable: col(x=>x.includes("reportable")), manDaysLost: col(x=>x.startsWith("man-days") || x.startsWith("man days")),
     date: col(x=>x.includes("accident date"))
   };
-  const missing = ["site","month","workers","nearMiss","recordable","reportable","manDaysLost"].filter(k => C[k] < 0);
+  const missing = ["site","month","workers"].filter(k => C[k] < 0).map(k => ({site:"Project",month:"Month",workers:"Manpower"})[k]);
   if (missing.length) { problems.push(`The "Monthly data" sheet is missing these columns: ${missing.join(", ")}. Keep the column headings from the template.`); return { sites, entries: [], problems }; }
   const seen = new Map();
   rows.slice(1).forEach((r,i)=>{
@@ -367,7 +367,7 @@ function parseWorkbook(wb){
     if (nums.every(k => String(get(k)).trim() === "")) return;   // row not filled in yet
     const name = String(get("site")).trim(), month = asMonth(get("month"));
     const where = `Monthly data, row ${rowNo}${name ? " ("+name+(month ? " "+keyLabel(month) : "")+")" : ""}`;
-    if (!name) return problems.push(`${where}: the site is blank.`);
+    if (!name) return problems.push(`${where}: the project is blank.`);
     if (!month) return problems.push(`${where}: month "${get("month")}" isn't a month. Use YYYY-MM, e.g. 2024-11.`);
     const num = (k, label, opts={}) => {
       const raw = String(get(k)).trim(); if (raw === "") return opts.blank;
@@ -375,13 +375,13 @@ function parseWorkbook(wb){
       if (!Number.isFinite(n) || n < 0 || (!opts.decimal && !Number.isInteger(n))) { problems.push(`${where}: ${label} "${raw}" should be ${opts.decimal ? "a number" : "a whole number"} of 0 or more.`); return opts.blank ?? 0; }
       return n;
     };
-    const e = { site: "", month, workers: num("workers","average workers",{blank:0}), nearMiss: num("nearMiss","near misses",{blank:0}),
+    const e = { site: "", month, workers: num("workers","manpower",{blank:0}), nearMiss: num("nearMiss","near misses",{blank:0}),
       recordable: num("recordable","recordable incidents",{blank:0}), reportable: num("reportable","reportable accidents",{blank:0}), manDaysLost: num("manDaysLost","man-days lost",{blank:0}) };
     const days = num("days","working days"), hpd = num("hpd","hours per day",{decimal:true}) ?? DEFAULT_HPD, hrs = num("hours","man-hours",{decimal:true});
     if (days !== undefined && days > 31) problems.push(`${where}: ${days} working days is more than a month has.`);
     if (hrs !== undefined) e.hours = Math.round(hrs);
     else if (days !== undefined) e.hours = Math.round(e.workers * days * hpd);
-    else { e.hours = 0; problems.push(`${where}: no man-hours and no working days, so man-hours count as 0. Fill in working days.`); }
+    else { e.hours = 0; problems.push(`${where}: hours worked is blank, so it counts as 0.`); }
     const d = get("date");
     if (String(d).trim() !== "") {
       const iso = asDay(d);
@@ -426,7 +426,7 @@ async function loadData(){
       : `No figures in ${DATA_FILE} yet, so every number on this page is sample data.`;
     $("banner").hidden = false;
     const mod = res.headers.get("last-modified");
-    $("source").textContent = `Data source: ${DATA_FILE}` + (mod ? `, updated ${new Date(mod).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}` : "") + ". Man-hours left blank are worked out as workers × working days × hours per day (9 if blank).";
+    $("source").textContent = `Data source: ${DATA_FILE}` + (mod ? `, updated ${new Date(mod).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}` : "") + ". Accident columns left blank count as 0.";
   } catch (err) {
     $("banner").textContent = err.message === "missing" ? `Couldn't find ${DATA_FILE}, so this page shows sample data.` : "Couldn't read the data file, so this page shows sample data. Check your connection and reload.";
   }
