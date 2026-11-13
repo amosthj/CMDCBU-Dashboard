@@ -63,7 +63,8 @@ h1 { margin: 2px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -.01em;
 .group-title { display: flex; align-items: baseline; gap: 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
 .group-title span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-2); }
 .mini { display: grid; gap: 2px; }
-.mini + .mini { border-top: 1px solid var(--grid); padding-top: 10px; }
+.stack { display: grid; gap: 20px; }
+.minis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
 .mini-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .mini-head b { font-size: 13px; font-weight: 600; }
 .mini-head span { font-size: 12px; color: var(--ink-2); }
@@ -131,7 +132,7 @@ footer { font-size: 12px; color: var(--muted); }
 .problems summary { cursor: pointer; font-weight: 600; }
 .problems ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 2px; }
 @media (max-width: 960px) { .kpis { grid-template-columns: repeat(2, 1fr); } .kpis .kpi:first-child { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .span2 { grid-row: auto; } .meta { text-align: left; } h1 { font-size: 22px; } }
+@media (max-width: 760px) { .minis { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } .span2 { grid-row: auto; } .meta { text-align: left; } h1 { font-size: 22px; } }
 </style>
 </head>
 <body>
@@ -163,29 +164,26 @@ footer { font-size: 12px; color: var(--muted); }
 
   <section class="group" aria-label="Accidents and incidents">
     <div class="group-title">Accidents &amp; incidents <span>MOM WSH reporting</span></div>
-    <div class="grid">
+    <div class="stack">
       <section class="panel">
         <h2>Accidents and near misses by month</h2>
         <p class="sub">Reportable accidents (MOM) and all recordable incidents against reported near misses. Rising near-miss reports usually signal a healthy reporting culture.</p>
         <div class="legend"><span><i style="background:var(--s1)"></i>Near misses</span><span><i style="background:var(--s2)"></i>Recordable incidents</span><span><i style="background:var(--s7)"></i>Reportable accidents</span></div>
         <div id="chartMonthly"></div>
       </section>
-      <section class="panel span2">
+      <section class="panel">
         <h2>WIR, AFR and ASR, rolling 12 months</h2>
         <p class="sub">Each rate uses its own scale. Dashed line is the 2026 target.</p>
+        <div class="minis">
         <div class="mini"><div class="mini-head"><b>WIR</b><span>Injuries per 100,000 workers</span></div><div id="chartWir"></div></div>
         <div class="mini"><div class="mini-head"><b>AFR</b><span>Reportable accidents per 1,000,000 man-hours</span></div><div id="chartAfr"></div></div>
         <div class="mini"><div class="mini-head"><b>ASR</b><span>Man-days lost per 1,000,000 man-hours</span></div><div id="chartAsr"></div></div>
+        </div>
         <dl class="defs">
           <dt>WIR</dt><dd>Workplace Injury Rate = (fatal + non-fatal workplace injuries ÷ average workers employed) × 100,000</dd>
           <dt>AFR</dt><dd>Accident Frequency Rate = (reportable accidents ÷ man-hours worked) × 1,000,000</dd>
           <dt>ASR</dt><dd>Accident Severity Rate = (man-days lost ÷ man-hours worked) × 1,000,000</dd>
         </dl>
-      </section>
-      <section class="panel">
-        <h2>Incidents by type<span class="tag" data-sample hidden>Sample data</span></h2>
-        <p class="sub">All recordable incidents in the period.</p>
-        <div id="chartTypes"></div>
       </section>
     </div>
   </section>
@@ -422,7 +420,7 @@ async function loadData(){
     showProblems(problems);
     const n = new Set(entries.map(e=>e.site)).size;
     $("banner").textContent = entries.length
-      ? `Figures from ${DATA_FILE}: ${entries.length} site-month${entries.length>1?"s":""} across ${n} site${n>1?"s":""}. "Incidents by type" is still sample data.`
+      ? `Figures from ${DATA_FILE}: ${entries.length} site-month${entries.length>1?"s":""} across ${n} site${n>1?"s":""}.`
       : `No figures in ${DATA_FILE} yet, so every number on this page is sample data.`;
     $("banner").hidden = false;
     const mod = res.headers.get("last-modified");
@@ -505,10 +503,10 @@ function axisX(svg, m, W, H, n, step, labels){
 }
 
 function renderMonthly(){
-  const W=620,H=280,m={t:10,r:8,b:24,l:30}, svg = svgBox("chartMonthly",W,H);
+  const W=1100,H=260,m={t:10,r:8,b:24,l:30}, svg = svgBox("chartMonthly",W,H);
   const n = DATA.months.length, max = niceMax(Math.max(4,...DATA.nearMiss)), step=(W-m.l-m.r)/n, pw=H-m.t-m.b;
   axisY(svg,m,W,H,max,4); axisX(svg,m,W,H,n,step,DATA.months);
-  const bw = Math.min(11,(step-10)/3);
+  const bw = Math.min(16,(step-10)/3);
   DATA.months.forEach((mo,i)=>{
     const cx = m.l+step*i+step/2;
     [[DATA.nearMiss[i],"--s1",cx-1.5*bw-2],[DATA.recordable[i],"--s2",cx-bw/2],[DATA.reportable[i],"--s7",cx+bw/2+2]].forEach(([v,c,x])=>{
@@ -546,23 +544,6 @@ function renderRate(id, key, digits, label){
 }
 
 
-function renderTypes(){
-  const rows = DATA.types, W=620, rh=30, m={t:4,r:36,b:4,l:160}, H=m.t+m.b+rh*rows.length, svg=svgBox("chartTypes",W,H);
-  const max = Math.max(1,...rows.map(r=>r[1])), total = sum(rows.map(r=>r[1]));
-  rows.forEach(([name,v],i)=>{
-    const y = m.t+i*rh, w = v/max*(W-m.l-m.r);
-    const t = el("text",{x:m.l-10,y:y+rh/2+4,"text-anchor":"end",style:`fill:${css("--ink-2")};font-family:var(--f-sans);font-size:12px`},svg); t.textContent = name;
-    el("path",{d:`M${m.l},${y+7}H${m.l+w-4}Q${m.l+w},${y+7} ${m.l+w},${y+11}V${y+rh-11}Q${m.l+w},${y+rh-7} ${m.l+w-4},${y+rh-7}H${m.l}Z`,fill:css("--s2")},svg);
-    const vl = el("text",{x:m.l+w+6,y:y+rh/2+4,style:`fill:${css("--ink")}`},svg); vl.textContent = v;
-    const hit = el("rect",{x:0,y,width:W,height:rh,class:"hit"},svg);
-    hit.addEventListener("pointermove",e=>showTip(e,`<b>${name}</b><br>${v} incidents (${Math.round(v/total*100)}% of total)`));
-    hit.addEventListener("pointerleave",hideTip);
-  });
-  el("line",{x1:m.l,x2:m.l,y1:m.t,y2:H-m.b,stroke:css("--axis")},svg);
-}
-
-
-
 function renderSites(){
   const rowFor = id => {
     const D = buildView(id), R = rates(D).at(-1), T = TARGETS;
@@ -580,7 +561,6 @@ function renderSites(){
   $("rollNote").textContent = `Rolling 12 months to ${monthLabel(11)}. Select a row to view that site.`;
   $("period").textContent = `Reporting period: ${monthLabel(0)} – ${monthLabel(11)}`;
   $("asof").textContent = `Data as of ${new Date(AS_OF+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`;
-  document.querySelectorAll("[data-sample]").forEach(t => t.hidden = !LIVE_MODE);
 }
 function renderChips(){
   document.getElementById("siteChips").innerHTML = ["all", ...SITE_LIST.map(st=>st.id)].map(id =>
@@ -595,7 +575,7 @@ function selectSite(id){
 document.addEventListener("click", e => { const t = e.target.closest("[data-site]"); if (t && !t.classList.contains("total")) selectSite(t.dataset.site); });
 document.addEventListener("keydown", e => { const t = e.target.closest("tr.pick"); if (t && (e.key==="Enter"||e.key===" ")) { e.preventDefault(); selectSite(t.dataset.site); } });
 
-function renderAll(){ renderChips(); renderSites(); renderKpis(); renderMonthly(); renderRate("chartWir","wir",0,"WIR"); renderRate("chartAfr","afr",2,"AFR"); renderRate("chartAsr","asr",1,"ASR"); renderTypes(); }
+function renderAll(){ renderChips(); renderSites(); renderKpis(); renderMonthly(); renderRate("chartWir","wir",0,"WIR"); renderRate("chartAfr","afr",2,"AFR"); renderRate("chartAsr","asr",1,"ASR"); }
 rebuild();
 DATA = buildView("all"); RATES = rates(DATA); renderAll();
 loadData();

@@ -57,5 +57,4 @@ Open `data/safety-data.xlsx` on GitHub and click **History**. Every upload is li
   - ASR = man-days lost ÷ man-hours × 1,000,000
 - **Before a site starts:** months before its start date are not counted.
 - **Sample data:** if the file has no figures filled in yet, the page shows sample data and says so at the top.
-- **Incidents by type** is still sample data. There is no column for it yet.
 - **Targets:** WIR 400, AFR 1.8, ASR 30. To change them, edit the `TARGETS` line near the top of the script in `index.html`, or ask Claude.
